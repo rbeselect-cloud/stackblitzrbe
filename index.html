@@ -1937,7 +1937,15 @@ function gerarParecerFinal(){
     </div>
     <h2 style="font-size:13px;color:#0B4F8A;border-bottom:2px solid #F5FAFF;padding-bottom:4px;margin:10px 0 8px">Pontos fortes</h2><p>${safe(pf)}</p>
     <h2 style="font-size:13px;color:#0B4F8A;border-bottom:2px solid #F5FAFF;padding-bottom:4px;margin:10px 0 8px">Pontos de atenção</h2><p>${safe(pa)}</p>
-    <h2 style="font-size:13px;color:#0B4F8A;border-bottom:2px solid #F5FAFF;padding-bottom:4px;margin:10px 0 8px">Observações gerais</h2><p>${safe(og)}</p>
+    <div style="font-size:13px;line-height:1.5;color:#333">
+${og || `
+• Fale brevemente sobre sua trajetória profissional.<br>
+• Por que saiu da última empresa?<br>
+• O que busca em uma nova oportunidade?<br>
+• Principais pontos fortes observados na entrevista.
+`}
+</div>
+
     <p style="margin-top:18px;font-size:10px;color:#999;border-top:1px solid #e0e8f5;padding-top:10px;text-align:center">RBE Select — rbeselect@gmail.com · ${hoje}</p>`;
   const idx=CANDS.findIndex(x=>x.id===c.id);if(idx!==-1)CANDS[idx].parecer=html;
   saveState();document.getElementById('rbe-modal').remove();rbePrintSafe('Parecer — '+safe(c.nome),html);
