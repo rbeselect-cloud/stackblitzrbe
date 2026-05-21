@@ -2110,7 +2110,7 @@ function renderDiscInsc(){
   const partial=discQs.slice(0,10);
   partial.forEach((q,i)=>{qHtml+=`<div style="background:var(--s50);border-radius:11px;padding:12px;margin-bottom:10px"><div style="font-size:13px;font-weight:700;color:var(--s900);margin-bottom:8px">${i+1}. ${q.txt}</div>${q.opts.map(o=>`<label style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;cursor:pointer;margin-bottom:3px;background:#fff;border:1.5px solid var(--s200);font-size:13px;color:var(--s600)"><input type="radio" name="disc${i}" value="${o.t}" style="width:auto;flex-shrink:0">${o.txt}</label>`).join('')}</div>`;});
   area.innerHTML=`<div class="card" style="border-radius:18px">
-    <div style="background:#0B4F8A;color:#fff;padding:14px 18px;border-radius:12px;margin-bottom:16px;text-align:center"><h2 style="font-size:16px;margin:0">Perfil Comportamental</h2><p style="margin:4px 0 0;font-size:12px;opacity:.8">7 perguntas · Selecione a que mais representa você</p></div>
+    <div style="background:#0B4F8A;color:#fff;padding:14px 18px;border-radius:12px;margin-bottom:16px;text-align:center"><h2 style="font-size:16px;margin:0">Perfil Comportamental</h2><p style="margin:4px 0 0;font-size:12px;opacity:.8">10 perguntas · Selecione a que mais representa você</p></div>
     ${qHtml}
     <div style="display:flex;gap:8px;margin-top:10px">
       <button class="bo" style="flex:1" onclick="inscIdx=0;renderInscStep()">← Voltar</button>
