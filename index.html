@@ -1937,7 +1937,16 @@ function gerarParecerFinal(){
     </div>
     <h2 style="font-size:13px;color:#0B4F8A;border-bottom:2px solid #F5FAFF;padding-bottom:4px;margin:10px 0 8px">Pontos fortes</h2><p>${safe(pf)}</p>
     <h2 style="font-size:13px;color:#0B4F8A;border-bottom:2px solid #F5FAFF;padding-bottom:4px;margin:10px 0 8px">Pontos de atenção</h2><p>${safe(pa)}</p>
-    <h2 style="font-size:13px;color:#0B4F8A;border-bottom:2px solid #F5FAFF;padding-bottom:4px;margin:10px 0 8px">Observações gerais</h2><p>${safe(og)}</p>
+    <div style="font-size:13px;line-height:1.5;color:#333">
+${og || `
+• Fale brevemente sobre sua trajetória profissional.<br>
+• Por que saiu da última empresa?<br>
+• O que busca em uma nova oportunidade?<br>
+• Principais pontos fortes observados na entrevista.
+`}
+
+</div>
+
     <p style="margin-top:18px;font-size:10px;color:#999;border-top:1px solid #e0e8f5;padding-top:10px;text-align:center">RBE Select — rbeselect@gmail.com · ${hoje}</p>`;
   const idx=CANDS.findIndex(x=>x.id===c.id);if(idx!==-1)CANDS[idx].parecer=html;
   saveState();document.getElementById('rbe-modal').remove();rbePrintSafe('Parecer — '+safe(c.nome),html);
@@ -2098,10 +2107,10 @@ function avancarInsc(){
 function renderDiscInsc(){
   const v=vagaInsc;const area=document.getElementById('insc-area');
   let qHtml='';
-  const partial=discQs.slice(0,7);
+  const partial=discQs.slice(0,10);
   partial.forEach((q,i)=>{qHtml+=`<div style="background:var(--s50);border-radius:11px;padding:12px;margin-bottom:10px"><div style="font-size:13px;font-weight:700;color:var(--s900);margin-bottom:8px">${i+1}. ${q.txt}</div>${q.opts.map(o=>`<label style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;cursor:pointer;margin-bottom:3px;background:#fff;border:1.5px solid var(--s200);font-size:13px;color:var(--s600)"><input type="radio" name="disc${i}" value="${o.t}" style="width:auto;flex-shrink:0">${o.txt}</label>`).join('')}</div>`;});
   area.innerHTML=`<div class="card" style="border-radius:18px">
-    <div style="background:#0B4F8A;color:#fff;padding:14px 18px;border-radius:12px;margin-bottom:16px;text-align:center"><h2 style="font-size:16px;margin:0">Perfil Comportamental</h2><p style="margin:4px 0 0;font-size:12px;opacity:.8">7 perguntas · Selecione a que mais representa você</p></div>
+    <div style="background:#0B4F8A;color:#fff;padding:14px 18px;border-radius:12px;margin-bottom:16px;text-align:center"><h2 style="font-size:16px;margin:0">Perfil Comportamental</h2><p style="margin:4px 0 0;font-size:12px;opacity:.8">10 perguntas · Selecione a que mais representa você</p></div>
     ${qHtml}
     <div style="display:flex;gap:8px;margin-top:10px">
       <button class="bo" style="flex:1" onclick="inscIdx=0;renderInscStep()">← Voltar</button>
@@ -2112,7 +2121,7 @@ function renderDiscInsc(){
 function finalizarInsc(){
   const v=vagaInsc;
   const scores={D:0,I:0,S:0,C:0};
-  discQs.slice(0,7).forEach((q,i)=>{const sel=document.querySelector(`input[name="disc${i}"]:checked`);if(sel)scores[sel.value]=(scores[sel.value]||0)+1;});
+  discQs.slice(0,10).forEach((q,i)=>{const sel=document.querySelector(`input[name="disc${i}"]:checked`);if(sel)scores[sel.value]=(scores[sel.value]||0)+1;});
   const tot=Object.values(scores).reduce((a,b)=>a+b,0)||1;
   const discResult=tot>0?{D:Math.round(scores.D/tot*100),I:Math.round(scores.I/tot*100),S:Math.round(scores.S/tot*100),C:Math.round(scores.C/tot*100)}:null;
   const cand={id:Date.now(),nome:inscData.nome,cpf:inscData.cpf,email:inscData.email,wa:inscData.wa,cidade:inscData.cidade,vaga:v.titulo,eid:0,pipe:'Inscrito',st:'Novo candidato',area:inscData.area,cargo:inscData.cargo||'',escolaridade:inscData.escolaridade||'',formacao:inscData.formacao||'',experiencias:inscData.experiencias||[],disc:discResult,parecer:'',obs:'',origem:'Sistema',comentarios:[],entrada:'',saida:'',curriculo:inscData.curriculo||'',cursos:inscData.cursos||[],lgpdConsentimento:true,lgpdData:new Date().toLocaleDateString('pt-BR'),historico:[{data:now(),de:'—',para:'Inscrito',obs:'Candidatura online',resp:'Sistema'}]};
