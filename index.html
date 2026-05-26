@@ -364,6 +364,8 @@ const VPUB=[
 
 // ===== UTILS =====
 const safe=s=>String(s||'').replace(/[<>&"]/g,m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));
+const fileNames=files=>Array.from(files||[]).map(f=>f.name).filter(Boolean);
+const fileNamesText=files=>fileNames(files).join(', ');
 const fBRL=v=>'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fD=s=>{if(!s)return'—';try{const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;}catch{return s;}};
 const dFrom=d=>{if(!d)return null;return Math.floor((Date.now()-new Date(d+'T00:00:00'))/86400000);};
@@ -989,7 +991,7 @@ function confirmarMoverCandidato(id){
 
 // ===== ADICIONAR CANDIDATO =====
 function addCM(){
-  window._nc={nome:'',cpf:'',email:'',wa:'',vaga:VPUB[0]?.titulo||'',pipe:'Triagem',entrada:'',saida:'',obs:'',file:null};
+  window._nc={nome:'',cpf:'',email:'',wa:'',vaga:VPUB[0]?.titulo||'',pipe:'Triagem',entrada:'',saida:'',obs:'',files:[]};
   const vagasOpts=VPUB.map(v=>`<option>${safe(v.titulo)}</option>`).join('')+'<option>Banco de Talentos</option>';
   rbeModal('Adicionar candidato',`<div class="fg2">
     <div class="fgi full"><label class="fgl">Nome completo *</label><input type="text" autocomplete="off" oninput="window._nc.nome=this.value" onkeyup="window._nc.nome=this.value" placeholder="Nome do candidato"></div>
@@ -1000,7 +1002,7 @@ function addCM(){
     <div class="fgi"><label class="fgl">Área de Interesse</label><select id="nc-area"><option value="">— Selecione —</option>${AREAS_INTERESSE.map(a=>`<option>${a}</option>`).join('')}</select></div>
     <div class="fgi"><label class="fgl">Etapa (Pipeline)</label><select onchange="window._nc.pipe=this.value" oninput="window._nc.pipe=this.value"><option>Inscrito</option><option selected>Triagem</option><option>Entrevista RH</option><option>Finalista</option><option>Contratado</option><option>Reprovado</option></select></div>
     <div class="fgi"><label class="fgl">Status</label><select id="nc-st">${ETAPAS_CANDIDATO.map((e,i)=>`<option${i===1?' selected':''}>${e}</option>`).join('')}</select></div>
-    <div class="fgi full"><label class="fgl">Currículo</label><input type="file" accept=".pdf,.doc,.docx,.jpg,.png" onchange="window._nc.file=this.files[0]"></div>
+    <div class="fgi full"><label class="fgl">Currículos / Arquivos</label><input type="file" multiple accept=".pdf,.doc,.docx,.jpg,.png,.jpeg" onchange="window._nc.files=Array.from(this.files)"><small style="display:block;margin-top:6px;color:var(--s400);font-size:12px">Você pode selecionar vários arquivos: currículo, certificados e anexos.</small></div>
     <div class="fgi full"><label class="fgl">Observações</label><textarea oninput="window._nc.obs=this.value" placeholder="Observações iniciais" style="height:60px"></textarea></div>
     <div class="fgi full" style="border-top:1px solid var(--s200);padding-top:10px;margin-top:4px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><label class="fgl" style="margin:0;font-weight:700">💼 Experiências Profissionais</label><button type="button" class="bo bsm" onclick="addExpModal()">+ Adicionar</button></div><div id="exps-modal-list"></div></div>
     <div class="fgi full" style="border-top:1px solid var(--s200);padding-top:10px;margin-top:4px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><label class="fgl" style="margin:0;font-weight:700">🎓 Cursos e Formações</label><button type="button" class="bo bsm" onclick="addCursoModal()">+ Adicionar</button></div><div id="cursos-modal-list"></div></div>
@@ -1031,7 +1033,7 @@ function salvarCandidatoManual(){
   const cursosEls=document.querySelectorAll('#rbe-modal .curso-item');
   const cursosList=[];cursosEls.forEach(el=>{const inps=el.querySelectorAll('input');if(inps[0]&&inps[0].value.trim())cursosList.push({nome:inps[0]?.value?.trim()||'',instituicao:inps[1]?.value?.trim()||'',ano:inps[2]?.value?.trim()||'',cargaHoraria:inps[3]?.value?.trim()||''});});
   const expsList=coletarExps(document.getElementById('rbe-modal'));
-  const cand={id:Date.now(),nome,cpf:(n.cpf||'').trim(),email:(n.email||'').trim(),wa:(n.wa||'').trim(),vaga:n.vaga||VPUB[0]?.titulo||'',eid:0,pipe:n.pipe||'Triagem',st:stVal,area:areaVal,disc:null,parecer:'',obs:(n.obs||'').trim(),origem:'Manual',comentarios:[],entrada:'',saida:'',curriculo:n.file?n.file.name:'',cursos:cursosList,experiencias:expsList,lgpdConsentimento:true,lgpdData:new Date().toLocaleDateString('pt-BR'),historico:[{data:now(),de:'—',para:stVal,obs:'Candidato adicionado manualmente',resp:'RBE Select'}]};
+  const cand={id:Date.now(),nome,cpf:(n.cpf||'').trim(),email:(n.email||'').trim(),wa:(n.wa||'').trim(),vaga:n.vaga||VPUB[0]?.titulo||'',eid:0,pipe:n.pipe||'Triagem',st:stVal,area:areaVal,disc:null,parecer:'',obs:(n.obs||'').trim(),origem:'Manual',comentarios:[],entrada:'',saida:'',curriculo:fileNamesText(n.files),arquivos:fileNames(n.files),cursos:cursosList,experiencias:expsList,lgpdConsentimento:true,lgpdData:new Date().toLocaleDateString('pt-BR'),historico:[{data:now(),de:'—',para:stVal,obs:'Candidato adicionado manualmente',resp:'RBE Select'}]};
   CANDS.push(cand);
   saveState();document.getElementById('rbe-modal').remove();rVagas2();rbeToast('Candidato adicionado.','ok');
 }
@@ -1042,14 +1044,14 @@ function rbeAnexarCurriculo(candId){
   rbeModal('Anexar currículo',`<div class="fg1">
     <div class="fgi"><label class="fgl">Candidato</label><input value="${safe(c.nome)}" disabled></div>
     ${c.curriculo?`<div class="alert ag">📎 Currículo atual: <strong>${safe(c.curriculo)}</strong></div>`:''}
-    <div class="fgi"><label class="fgl">Arquivo do currículo (PDF, Word, imagem)</label><input id="cur-file" type="file" accept=".pdf,.doc,.docx,.jpg,.png"></div>
+    <div class="fgi"><label class="fgl">Arquivos do candidato (PDF, Word, imagem)</label><input id="cur-file" type="file" multiple accept=".pdf,.doc,.docx,.jpg,.png,.jpeg"><small style="display:block;margin-top:6px;color:var(--s400);font-size:12px">Selecione um ou mais arquivos.</small></div>
   </div>`,`<button class="bo" onclick="document.getElementById('rbe-modal').remove()">Cancelar</button><button class="bp" onclick="rbeSalvarCurriculo(${c.id})">Salvar currículo</button>`);
 }
 function rbeSalvarCurriculo(candId){
-  const f=document.getElementById('cur-file')?.files?.[0];if(!f)return alert('Selecione o arquivo.');
+  const files=Array.from(document.getElementById('cur-file')?.files||[]);if(!files.length)return alert('Selecione ao menos um arquivo.');
   const c=CANDS.find(x=>String(x.id)===String(candId));if(!c)return;
-  c.curriculo=f.name;(window.RBE_CURRICULOS||[]).push({id:Date.now(),candId:c.id,nome:c.nome,arquivo:f.name,data:new Date().toLocaleDateString('pt-BR')});
-  saveState();document.getElementById('rbe-modal').remove();rbeToast('Currículo anexado: '+f.name,'ok');if(typeof rVagas2==='function')rVagas2();
+  c.arquivos=[...(c.arquivos||[]),...fileNames(files)];c.curriculo=c.arquivos.join(', ');files.forEach(f=>(window.RBE_CURRICULOS||[]).push({id:Date.now()+Math.random(),candId:c.id,nome:c.nome,arquivo:f.name,data:new Date().toLocaleDateString('pt-BR')}));
+  saveState();document.getElementById('rbe-modal').remove();rbeToast(files.length+' arquivo(s) anexado(s).','ok');if(typeof rVagas2==='function')rVagas2();
 }
 
 // ===== FINANCEIRO =====
@@ -2111,7 +2113,7 @@ function renderInscStep(){
         <div><label class="fgl">Curso / área de formação</label><input id="i-formacao" placeholder="Ex: Administração, Técnico em Logística..."></div>
       </div>
       <div id="cursos-insc-list"></div>
-      <div style="margin-top:8px"><label class="fgl" style="color:var(--blue)">Anexar currículo (opcional)</label><input id="i-curriculo" type="file" accept=".pdf,.doc,.docx,.jpg,.png" style="display:block;margin-top:4px"></div>
+      <div style="margin-top:8px"><label class="fgl" style="color:var(--blue)">Anexar currículo (opcional)</label><input id="i-curriculo" type="file" multiple accept=".pdf,.doc,.docx,.jpg,.png,.jpeg" style="display:block;margin-top:4px"><small style="display:block;margin-top:6px;color:var(--s400);font-size:12px">Você pode enviar currículo, certificados e outros anexos.</small></div>
     </div>
     <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:10px;padding:13px 15px;margin-bottom:14px;margin-top:14px"><label style="display:flex;gap:11px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="i-lgpd" style="width:auto;flex-shrink:0;margin-top:3px;accent-color:var(--blue)"><span style="font-size:12px;color:#1E40AF;line-height:1.6">Autorizo a RBE Select a tratar meus dados pessoais para fins de recrutamento e seleção, conforme a <strong>LGPD (Lei 13.709/2018)</strong>.</span></label></div>
     <button class="bp" style="width:100%;padding:12px" onclick="avancarInsc()">Avançar →</button></div>`;
@@ -2127,8 +2129,8 @@ function avancarInsc(){
   const expsList=[];expEls.forEach(el=>{const inps=el.querySelectorAll('input');const ta=el.querySelector('textarea');const de=(inps[0]?.value||'').trim();const ate=(inps[1]?.value||'').trim();const desc=(ta?.value||'').trim();if(de||ate||desc)expsList.push({cargo:'',empresa:'',de,ate,desc});});
   const cursoEls=document.querySelectorAll('#cursos-insc-list .curso-insc-item');
   const cursosList=[];cursoEls.forEach(el=>{const inps=el.querySelectorAll('input');if(inps[0]?.value?.trim())cursosList.push({nome:inps[0].value.trim(),instituicao:(inps[1]?.value||'').trim(),ano:(inps[2]?.value||'').trim(),cargaHoraria:''});});
-  const curFile=document.getElementById('i-curriculo')?.files?.[0]||null;
-  inscData={nome,cpf,email:document.getElementById('i-email')?.value?.trim()||'',wa:document.getElementById('i-wa')?.value?.trim()||'',cidade:document.getElementById('i-cidade')?.value?.trim()||'',area:document.getElementById('i-area')?.value||'',cargo:document.getElementById('i-cargo')?.value?.trim()||'',escolaridade:document.getElementById('i-escolaridade')?.value||'',formacao:document.getElementById('i-formacao')?.value?.trim()||'',experiencias:expsList,cursos:cursosList,curriculo:curFile?curFile.name:''};
+  const curFiles=Array.from(document.getElementById('i-curriculo')?.files||[]);
+  inscData={nome,cpf,email:document.getElementById('i-email')?.value?.trim()||'',wa:document.getElementById('i-wa')?.value?.trim()||'',cidade:document.getElementById('i-cidade')?.value?.trim()||'',area:document.getElementById('i-area')?.value||'',cargo:document.getElementById('i-cargo')?.value?.trim()||'',escolaridade:document.getElementById('i-escolaridade')?.value||'',formacao:document.getElementById('i-formacao')?.value?.trim()||'',experiencias:expsList,cursos:cursosList,curriculo:fileNamesText(curFiles),arquivos:fileNames(curFiles)};
   const cExist=CANDS.find(c=>c.cpf&&c.cpf.replace(/\D/g,'')===cpf.replace(/\D/g,''));
   if(cExist){alert('Você já está cadastrado! Acesse "Já me inscrevi" para consultar sua candidatura.');return;}
   inscIdx=1;renderDiscInsc();
@@ -2153,7 +2155,7 @@ function finalizarInsc(){
   discQs.slice(0,7).forEach((q,i)=>{const sel=document.querySelector(`input[name="disc${i}"]:checked`);if(sel)scores[sel.value]=(scores[sel.value]||0)+1;});
   const tot=Object.values(scores).reduce((a,b)=>a+b,0)||1;
   const discResult=tot>0?{D:Math.round(scores.D/tot*100),I:Math.round(scores.I/tot*100),S:Math.round(scores.S/tot*100),C:Math.round(scores.C/tot*100)}:null;
-  const cand={id:Date.now(),nome:inscData.nome,cpf:inscData.cpf,email:inscData.email,wa:inscData.wa,cidade:inscData.cidade,vaga:v.titulo,eid:0,pipe:'Inscrito',st:'Novo candidato',area:inscData.area,cargo:inscData.cargo||'',escolaridade:inscData.escolaridade||'',formacao:inscData.formacao||'',experiencias:inscData.experiencias||[],disc:discResult,parecer:'',obs:'',origem:'Sistema',comentarios:[],entrada:'',saida:'',curriculo:inscData.curriculo||'',cursos:inscData.cursos||[],lgpdConsentimento:true,lgpdData:new Date().toLocaleDateString('pt-BR'),historico:[{data:now(),de:'—',para:'Inscrito',obs:'Candidatura online',resp:'Sistema'}]};
+  const cand={id:Date.now(),nome:inscData.nome,cpf:inscData.cpf,email:inscData.email,wa:inscData.wa,cidade:inscData.cidade,vaga:v.titulo,eid:0,pipe:'Inscrito',st:'Novo candidato',area:inscData.area,cargo:inscData.cargo||'',escolaridade:inscData.escolaridade||'',formacao:inscData.formacao||'',experiencias:inscData.experiencias||[],disc:discResult,parecer:'',obs:'',origem:'Sistema',comentarios:[],entrada:'',saida:'',curriculo:inscData.curriculo||'',arquivos:inscData.arquivos||[],cursos:inscData.cursos||[],lgpdConsentimento:true,lgpdData:new Date().toLocaleDateString('pt-BR'),historico:[{data:now(),de:'—',para:'Inscrito',obs:'Candidatura online',resp:'Sistema'}]};
   CANDS.push(cand);saveState();
   document.getElementById('insc-area').innerHTML=`<div class="card" style="border-radius:18px;text-align:center;padding:32px">
     <div style="font-size:40px;margin-bottom:12px">🎉</div>
@@ -2555,7 +2557,7 @@ function renderAbaDocumentos(candId,somenteLeitura){
         <div style="font-size:14px;font-weight:800;color:var(--s900)">Documentos</div>
         <div style="font-size:12px;color:var(--s400)">Currículo, certificados e anexos do candidato.</div>
       </div>
-      ${somenteLeitura ? '' : `<label class="bo bsm" style="cursor:pointer">+ Anexar<input type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" style="display:none" onchange="anexarDocCandidato(event,${candId})"></label>`}
+      ${somenteLeitura ? '' : `<label class="bo bsm" style="cursor:pointer">+ Anexar arquivos<input type="file" multiple accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" style="display:none" onchange="anexarDocCandidato(event,${candId})"></label>`}
     </div>
     ${listHtml}
   </div>`;
