@@ -275,8 +275,9 @@ button{cursor:pointer;font-family:inherit;border:none;border-radius:10px;font-we
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAnalytics, isSupported as analyticsIsSupported } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
-  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyC6JAbJTc-HWrDBKTgPRitx4xFK29-1Hl0",
@@ -291,6 +292,7 @@ button{cursor:pointer;font-family:inherit;border:none;border-radius:10px;font-we
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
+  const storage = getStorage(app);
 
   let analytics = null;
   analyticsIsSupported().then((supported) => {
@@ -305,6 +307,52 @@ button{cursor:pointer;font-family:inherit;border:none;border-radius:10px;font-we
   window.rbeFirebaseApp = app;
   window.db = db;
   window.auth = auth;
+  window.storage = storage;
+
+  const limparFirebase = (obj) => JSON.parse(JSON.stringify(obj || {}));
+
+  window.rbeSyncDoc = async function(colecao, id, dados){
+    if(!colecao || !id) return;
+    const dadosLimpos = limparFirebase(dados);
+    await setDoc(doc(db, colecao, String(id)), {
+      ...dadosLimpos,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  };
+
+  window.rbeSyncAll = async function(payload){
+    if(!payload) return;
+    const tarefas = [];
+    (payload.CANDS || []).forEach(c => tarefas.push(window.rbeSyncDoc('candidatos', c.id, c)));
+    (payload.VPUB || []).forEach(v => tarefas.push(window.rbeSyncDoc('vagas', v.id, v)));
+    (payload.PROCS || []).forEach(p => tarefas.push(window.rbeSyncDoc('processos', p.id, p)));
+    if(window.RBE_DOCS) tarefas.push(window.rbeSyncDoc('sistema', 'documentos_candidatos', window.RBE_DOCS));
+    await Promise.all(tarefas);
+  };
+
+  window.rbeUploadCandidateFiles = async function(candId, files){
+    const lista = Array.from(files || []);
+    const enviados = [];
+    for(const file of lista){
+      const nomeSeguro = String(file.name || 'arquivo').replace(/[^a-zA-Z0-9._-]/g, '_');
+      const caminho = `candidatos/${candId}/${Date.now()}_${nomeSeguro}`;
+      const refArquivo = storageRef(storage, caminho);
+      await uploadBytes(refArquivo, file);
+      const url = await getDownloadURL(refArquivo);
+      const kb = Math.round(file.size / 1024);
+      enviados.push({
+        id: Date.now() + Math.random(),
+        nome: file.name,
+        tipo: file.type || 'arquivo',
+        tamanho: kb > 1024 ? (kb / 1024).toFixed(1) + ' MB' : kb + ' KB',
+        data: new Date().toLocaleDateString('pt-BR'),
+        storagePath: caminho,
+        url
+      });
+    }
+    return enviados;
+  };
+
   window.rbeFirebaseReady = true;
   console.log("Firebase conectado com sucesso.");
 </script>
@@ -366,6 +414,14 @@ const VPUB=[
 const safe=s=>String(s||'').replace(/[<>&"]/g,m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));
 const fileNames=files=>Array.from(files||[]).map(f=>f.name).filter(Boolean);
 const fileNamesText=files=>fileNames(files).join(', ');
+function rbeSyncFirebaseDebounced(){
+  clearTimeout(window._rbeFirebaseSyncTimer);
+  window._rbeFirebaseSyncTimer=setTimeout(()=>{
+    if(window.rbeSyncAll){
+      window.rbeSyncAll({PROCS,CANDS,VPUB}).then(()=>console.log('Firebase atualizado.')).catch(e=>console.warn('Firebase não atualizou:',e));
+    }
+  },900);
+}
 const fBRL=v=>'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fD=s=>{if(!s)return'—';try{const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;}catch{return s;}};
 const dFrom=d=>{if(!d)return null;return Math.floor((Date.now()-new Date(d+'T00:00:00'))/86400000);};
@@ -1018,7 +1074,7 @@ function addExpModal(){const li=document.getElementById('exps-modal-list');if(li
 function addExpEdit(){const li=document.getElementById('exps-edit-list');if(li)li.insertAdjacentHTML('beforeend',`<div class="exp-item" style="background:var(--s50);border:1px solid var(--s200);border-radius:9px;padding:10px;margin-bottom:8px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><input placeholder="Cargo / Função" style="font-weight:600"><input placeholder="Empresa"><input placeholder="De (MM/AAAA)"><input placeholder="Até (MM/AAAA ou Atual)"></div><div style="display:flex;align-items:center;gap:6px"><input placeholder="Descrição / Atividades (opcional)" style="flex:1"><button type="button" class="bdanger bsm" onclick="this.closest('.exp-item').remove()">✕</button></div></div>`);}
 function coletarExps(scope){const els=(scope||document).querySelectorAll('.exp-item');const list=[];els.forEach(el=>{const inps=el.querySelectorAll('input');const cargo=(inps[0]?.value||'').trim();if(cargo)list.push({cargo,empresa:(inps[1]?.value||'').trim(),de:(inps[2]?.value||'').trim(),ate:(inps[3]?.value||'').trim(),desc:(inps[4]?.value||'').trim()});});return list;}
 
-function salvarCandidatoManual(){
+async function salvarCandidatoManual(){
   const n=window._nc||{};
   const inp=document.querySelectorAll('#rbe-modal input[type=text],#rbe-modal input:not([type]),#rbe-modal textarea');
   if(!n.nome&&inp[0])n.nome=inp[0].value;
@@ -1033,9 +1089,21 @@ function salvarCandidatoManual(){
   const cursosEls=document.querySelectorAll('#rbe-modal .curso-item');
   const cursosList=[];cursosEls.forEach(el=>{const inps=el.querySelectorAll('input');if(inps[0]&&inps[0].value.trim())cursosList.push({nome:inps[0]?.value?.trim()||'',instituicao:inps[1]?.value?.trim()||'',ano:inps[2]?.value?.trim()||'',cargaHoraria:inps[3]?.value?.trim()||''});});
   const expsList=coletarExps(document.getElementById('rbe-modal'));
-  const cand={id:Date.now(),nome,cpf:(n.cpf||'').trim(),email:(n.email||'').trim(),wa:(n.wa||'').trim(),vaga:n.vaga||VPUB[0]?.titulo||'',eid:0,pipe:n.pipe||'Triagem',st:stVal,area:areaVal,disc:null,parecer:'',obs:(n.obs||'').trim(),origem:'Manual',comentarios:[],entrada:'',saida:'',curriculo:fileNamesText(n.files),arquivos:fileNames(n.files),cursos:cursosList,experiencias:expsList,lgpdConsentimento:true,lgpdData:new Date().toLocaleDateString('pt-BR'),historico:[{data:now(),de:'—',para:stVal,obs:'Candidato adicionado manualmente',resp:'RBE Select'}]};
+  const candId=Date.now();
+  let docsEnviados=[];
+  if((n.files||[]).length && window.rbeUploadCandidateFiles){
+    try{ docsEnviados = await window.rbeUploadCandidateFiles(candId, n.files); }
+    catch(e){ console.warn('Arquivos não enviados ao Storage:', e); alert('Candidato será salvo, mas o upload dos arquivos falhou. Verifique as regras do Firebase Storage.'); }
+  }
+  const cand={id:candId,nome,cpf:(n.cpf||'').trim(),email:(n.email||'').trim(),wa:(n.wa||'').trim(),vaga:n.vaga||VPUB[0]?.titulo||'',eid:0,pipe:n.pipe||'Triagem',st:stVal,area:areaVal,disc:null,parecer:'',obs:(n.obs||'').trim(),origem:'Manual',comentarios:[],entrada:'',saida:'',curriculo:fileNamesText(n.files),arquivos:fileNames(n.files),cursos:cursosList,experiencias:expsList,lgpdConsentimento:true,lgpdData:new Date().toLocaleDateString('pt-BR'),historico:[{data:now(),de:'—',para:stVal,obs:'Candidato adicionado manualmente',resp:'RBE Select'}]};
   CANDS.push(cand);
-  saveState();document.getElementById('rbe-modal').remove();rVagas2();rbeToast('Candidato adicionado.','ok');
+  docsEnviados.forEach(d=>addCandDoc(cand.id,d));
+  saveState();
+  if(window.rbeSyncDoc){
+    try{ await window.rbeSyncDoc('candidatos', cand.id, cand); await window.rbeSyncDoc('documentosCandidatos', cand.id, {candId:cand.id,docs:getCandDocs(cand.id)}); }
+    catch(e){ console.warn('Candidato não sincronizado no Firestore:', e); }
+  }
+  document.getElementById('rbe-modal').remove();rVagas2();rbeToast('Candidato adicionado e enviado ao Firebase.','ok');
 }
 
 // ===== ANEXAR CURRÍCULO =====
@@ -1047,11 +1115,20 @@ function rbeAnexarCurriculo(candId){
     <div class="fgi"><label class="fgl">Arquivos do candidato (PDF, Word, imagem)</label><input id="cur-file" type="file" multiple accept=".pdf,.doc,.docx,.jpg,.png,.jpeg"><small style="display:block;margin-top:6px;color:var(--s400);font-size:12px">Selecione um ou mais arquivos.</small></div>
   </div>`,`<button class="bo" onclick="document.getElementById('rbe-modal').remove()">Cancelar</button><button class="bp" onclick="rbeSalvarCurriculo(${c.id})">Salvar currículo</button>`);
 }
-function rbeSalvarCurriculo(candId){
+async function rbeSalvarCurriculo(candId){
   const files=Array.from(document.getElementById('cur-file')?.files||[]);if(!files.length)return alert('Selecione ao menos um arquivo.');
   const c=CANDS.find(x=>String(x.id)===String(candId));if(!c)return;
-  c.arquivos=[...(c.arquivos||[]),...fileNames(files)];c.curriculo=c.arquivos.join(', ');files.forEach(f=>(window.RBE_CURRICULOS||[]).push({id:Date.now()+Math.random(),candId:c.id,nome:c.nome,arquivo:f.name,data:new Date().toLocaleDateString('pt-BR')}));
-  saveState();document.getElementById('rbe-modal').remove();rbeToast(files.length+' arquivo(s) anexado(s).','ok');if(typeof rVagas2==='function')rVagas2();
+  let docsEnviados=[];
+  if(window.rbeUploadCandidateFiles){
+    try{ docsEnviados = await window.rbeUploadCandidateFiles(c.id, files); }
+    catch(e){ console.warn('Upload ao Firebase Storage falhou:', e); return alert('Não consegui enviar os arquivos ao Firebase Storage. Verifique as regras do Storage.'); }
+  }
+  c.arquivos=[...(c.arquivos||[]),...fileNames(files)];c.curriculo=c.arquivos.join(', ');
+  files.forEach(f=>(window.RBE_CURRICULOS||[]).push({id:Date.now()+Math.random(),candId:c.id,nome:c.nome,arquivo:f.name,data:new Date().toLocaleDateString('pt-BR')}));
+  docsEnviados.forEach(d=>addCandDoc(c.id,d));
+  saveState();
+  if(window.rbeSyncDoc){try{await window.rbeSyncDoc('candidatos', c.id, c); await window.rbeSyncDoc('documentosCandidatos', c.id, {candId:c.id,docs:getCandDocs(c.id)});}catch(e){console.warn(e);}}
+  document.getElementById('rbe-modal').remove();rbeToast(files.length+' arquivo(s) anexado(s) e enviados ao Firebase.','ok');if(typeof rVagas2==='function')rVagas2();
 }
 
 // ===== FINANCEIRO =====
@@ -2149,14 +2226,22 @@ function renderDiscInsc(){
     </div>
   </div>`;
 }
-function finalizarInsc(){
+async function finalizarInsc(){
   const v=vagaInsc;
   const scores={D:0,I:0,S:0,C:0};
   discQs.slice(0,7).forEach((q,i)=>{const sel=document.querySelector(`input[name="disc${i}"]:checked`);if(sel)scores[sel.value]=(scores[sel.value]||0)+1;});
   const tot=Object.values(scores).reduce((a,b)=>a+b,0)||1;
   const discResult=tot>0?{D:Math.round(scores.D/tot*100),I:Math.round(scores.I/tot*100),S:Math.round(scores.S/tot*100),C:Math.round(scores.C/tot*100)}:null;
-  const cand={id:Date.now(),nome:inscData.nome,cpf:inscData.cpf,email:inscData.email,wa:inscData.wa,cidade:inscData.cidade,vaga:v.titulo,eid:0,pipe:'Inscrito',st:'Novo candidato',area:inscData.area,cargo:inscData.cargo||'',escolaridade:inscData.escolaridade||'',formacao:inscData.formacao||'',experiencias:inscData.experiencias||[],disc:discResult,parecer:'',obs:'',origem:'Sistema',comentarios:[],entrada:'',saida:'',curriculo:inscData.curriculo||'',arquivos:inscData.arquivos||[],cursos:inscData.cursos||[],lgpdConsentimento:true,lgpdData:new Date().toLocaleDateString('pt-BR'),historico:[{data:now(),de:'—',para:'Inscrito',obs:'Candidatura online',resp:'Sistema'}]};
-  CANDS.push(cand);saveState();
+  const candId=Date.now();
+  let docsEnviados=[];
+  const inputFiles=Array.from(document.getElementById('i-curriculo')?.files||[]);
+  if(inputFiles.length && window.rbeUploadCandidateFiles){
+    try{ docsEnviados = await window.rbeUploadCandidateFiles(candId, inputFiles); }
+    catch(e){ console.warn('Upload ao Firebase Storage falhou:', e); alert('Sua candidatura será salva, mas os arquivos não foram enviados. Verifique o Firebase Storage.'); }
+  }
+  const cand={id:candId,nome:inscData.nome,cpf:inscData.cpf,email:inscData.email,wa:inscData.wa,cidade:inscData.cidade,vaga:v.titulo,eid:0,pipe:'Inscrito',st:'Novo candidato',area:inscData.area,cargo:inscData.cargo||'',escolaridade:inscData.escolaridade||'',formacao:inscData.formacao||'',experiencias:inscData.experiencias||[],disc:discResult,parecer:'',obs:'',origem:'Sistema',comentarios:[],entrada:'',saida:'',curriculo:inscData.curriculo||'',arquivos:inscData.arquivos||[],cursos:inscData.cursos||[],lgpdConsentimento:true,lgpdData:new Date().toLocaleDateString('pt-BR'),historico:[{data:now(),de:'—',para:'Inscrito',obs:'Candidatura online',resp:'Sistema'}]};
+  CANDS.push(cand); docsEnviados.forEach(d=>addCandDoc(cand.id,d)); saveState();
+  if(window.rbeSyncDoc){try{await window.rbeSyncDoc('candidatos', cand.id, cand); await window.rbeSyncDoc('documentosCandidatos', cand.id, {candId:cand.id,docs:getCandDocs(cand.id)});}catch(e){console.warn(e);}}
   document.getElementById('insc-area').innerHTML=`<div class="card" style="border-radius:18px;text-align:center;padding:32px">
     <div style="font-size:40px;margin-bottom:12px">🎉</div>
     <div style="font-size:20px;font-weight:900;color:var(--s900);margin-bottom:8px">Candidatura enviada!</div>
@@ -2175,6 +2260,7 @@ function saveState(){
     localStorage.setItem('rbe_deleted_acessos',JSON.stringify(window.RBE_DELETED_ACESSOS||[]));
     localStorage.setItem('rbe_curriculos',JSON.stringify(window.RBE_CURRICULOS||[]));
     localStorage.setItem('rbe_modelo_pagamento',RBE_MODELO_PAGAMENTO);
+    rbeSyncFirebaseDebounced();
   }catch(e){console.warn('Não foi possível salvar estado',e);}
 }
 function loadState(){
@@ -2492,10 +2578,11 @@ function removeCandDoc(candId,docId){
 
 function abrirCandDoc(candId,docId){
   const doc = getCandDocs(candId).find(d => String(d.id) === String(docId));
-  if(!doc || !doc.base64){
+  if(!doc){
     alert('Arquivo não encontrado.');
     return;
   }
+  if(doc.url && !doc.base64){ window.open(doc.url,'_blank'); return; }
   const w = window.open('', '_blank', 'width=900,height=700');
   if(!w){
     alert('Permita pop-ups para visualizar o documento.');
@@ -2509,29 +2596,45 @@ function abrirCandDoc(candId,docId){
   w.document.close();
 }
 
-function anexarDocCandidato(evt,candId){
-  const file = evt.target.files && evt.target.files[0];
-  if(!file) return;
-  if(file.size > 5 * 1024 * 1024){
-    alert('Arquivo muito grande. Máximo permitido: 5 MB.');
-    evt.target.value = '';
-    return;
+async function anexarDocCandidato(evt,candId){
+  const files = Array.from(evt.target.files || []);
+  if(!files.length) return;
+  for(const file of files){
+    if(file.size > 8 * 1024 * 1024){
+      alert('Arquivo muito grande: '+file.name+'. Máximo permitido: 8 MB.');
+      evt.target.value = '';
+      return;
+    }
   }
-  const reader = new FileReader();
-  reader.onload = function(e){
-    const kb = Math.round(file.size / 1024);
-    addCandDoc(candId, {
-      id: Date.now(),
-      nome: file.name,
-      tipo: file.type || 'arquivo',
-      tamanho: kb > 1024 ? (kb / 1024).toFixed(1) + ' MB' : kb + ' KB',
-      data: new Date().toLocaleDateString('pt-BR'),
-      base64: e.target.result
-    });
-    rbeToast('Documento anexado com sucesso.','ok');
-    if(typeof rCDet === 'function') rCDet(candId);
-  };
-  reader.readAsDataURL(file);
+  let docsEnviados=[];
+  if(window.rbeUploadCandidateFiles){
+    try{ docsEnviados = await window.rbeUploadCandidateFiles(candId, files); }
+    catch(e){ console.warn('Upload ao Firebase Storage falhou, salvando localmente:', e); }
+  }
+  if(docsEnviados.length){
+    docsEnviados.forEach(d=>addCandDoc(candId,d));
+  }else{
+    await Promise.all(files.map(file=>new Promise(resolve=>{
+      const reader = new FileReader();
+      reader.onload = function(e){
+        const kb = Math.round(file.size / 1024);
+        addCandDoc(candId, {
+          id: Date.now()+Math.random(),
+          nome: file.name,
+          tipo: file.type || 'arquivo',
+          tamanho: kb > 1024 ? (kb / 1024).toFixed(1) + ' MB' : kb + ' KB',
+          data: new Date().toLocaleDateString('pt-BR'),
+          base64: e.target.result
+        });
+        resolve();
+      };
+      reader.readAsDataURL(file);
+    })));
+  }
+  saveRbeDocs();
+  if(window.rbeSyncDoc){try{await window.rbeSyncDoc('documentosCandidatos', candId, {candId,docs:getCandDocs(candId)});}catch(e){console.warn(e);}}
+  rbeToast(files.length+' documento(s) anexado(s).','ok');
+  if(typeof rCDet === 'function') rCDet(candId);
 }
 
 function renderAbaDocumentos(candId,somenteLeitura){
