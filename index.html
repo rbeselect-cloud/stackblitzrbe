@@ -2421,7 +2421,13 @@ _rbeObs.observe(document.body,{childList:true,subtree:true});
 
 // INIT
 loadState();
-ss('home');
+ss('home'); // RBE SELECT — Aba Documentos nos candidatos
+window.RBE_DOCS = JSON.parse(localStorage.getItem('rbe_docs') || '{}');
+function saveRbeDocs(){try{const meta={};Object.keys(window.RBE_DOCS).forEach(k=>{meta[k]=window.RBE_DOCS[k].map(d=>({...d,base64:d.base64?'[arquivo]':''}));});localStorage.setItem('rbe_docs_meta',JSON.stringify(meta));}catch(e){}}
+function getCandDocs(candId){return window.RBE_DOCS[String(candId)]||[];}
+function addCandDoc(candId,doc){const k=String(candId);if(!window.RBE_DOCS[k])window.RBE_DOCS[k]=[];window.RBE_DOCS[k].push(doc);saveRbeDocs();}
+function removeCandDoc(candId,docId){const k=String(candId);if(!window.RBE_DOCS[k])return;window.RBE_DOCS[k]=window.RBE_DOCS[k].filter(d=>d.id!==docId);saveRbeDocs();}
+function renderAbaDocumentos(candId,somenteLeitura){const docs=getCandDocs(candId);const listHtml=docs.length?docs.map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;background:var(--s50);border:1px solid var(--s100);border-radius:9px;margin-bottom:6px"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0"><span style="font-size:20px">${d.base64&&d.base64.includes('pdf')?'📄':d.base64&&d.base64.match(/image/)?'🖼️':'📎'}</span><div><div style="font-size:13px;font-weight:700;color:var(--s900)">${d.nome}</div><div style="font-size:10px;color:var(--s400)">${d.tamanho||''} · ${d.data||''}</div></div></div><div style="display:flex;gap
 </script>
 </body>
 </html>
