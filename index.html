@@ -843,7 +843,7 @@ function openCandDetModal(id){
     <div id="cdt-docs" class="hidden"></div>
     <div id="cdt-info">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
-        ${[['Nome',c.nome],['E-mail',c.email||'—'],['WhatsApp',c.wa||'—'],['CPF',c.cpf||'—'],['Vaga',c.vaga],['Pipeline',c.pipe],['Status',c.st],['Área',c.area||'—'],['Escolaridade',c.escolaridade||'—'],['Formação',c.formacao||'—'],['Entrada',c.entrada||'—'],['Saída',c.saida||'—'],['Origem',c.origem||'—'],['Currículo',c.curriculo||'—'],['LGPD',c.lgpdConsentimento?'✅ Consentido em '+(c.lgpdData||'—'):'⚠️ Pendente']].map(([l,v])=>`<div style="background:var(--s50);border-radius:8px;padding:8px 11px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--s400);margin-bottom:1px">${l}</div><div style="font-size:13px;font-weight:600;color:var(--s800)">${safe(v)}</div></div>`).join('')}
+        ${[['Nome',c.nome],['CPF',c.cpf||'—'],['Data de Nascimento',c.dataNasc||'—'],['E-mail',c.email||'—'],['WhatsApp',c.wa||'—'],['Vaga',c.vaga],['Pipeline',c.pipe],['Status',c.st],['Área',c.area||'—'],['Escolaridade',c.escolaridade||'—'],['Formação',c.formacao||'—'],['Entrada',c.entrada||'—'],['Saída',c.saida||'—'],['Origem',c.origem||'—'],['Currículo',c.curriculo||'—'],['LGPD',c.lgpdConsentimento?'✅ Consentido em '+(c.lgpdData||'—'):'⚠️ Pendente']].map(([l,v])=>`<div style="background:var(--s50);border-radius:8px;padding:8px 11px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--s400);margin-bottom:1px">${l}</div><div style="font-size:13px;font-weight:600;color:var(--s800)">${safe(v)}</div></div>`).join('')}
       </div>
       ${c.obs?`<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:9px;padding:10px 13px;margin-bottom:10px"><div style="font-size:10px;font-weight:700;color:var(--amber);margin-bottom:4px">OBSERVAÇÕES</div><div style="font-size:13px;color:var(--s700)">${safe(c.obs)}</div></div>`:''}
       ${(c.experiencias&&c.experiencias.length)?`<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--s400);margin-bottom:7px">💼 Experiências Profissionais</div>${c.experiencias.map(ex=>`<div style="background:var(--s50);border:1px solid var(--s100);border-radius:9px;padding:10px 13px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><div style="font-size:13px;font-weight:700;color:var(--s900)">${safe(ex.cargo)}</div><div style="font-size:12px;color:var(--blue);font-weight:600">${safe(ex.empresa||'')}</div>${ex.desc?`<div style="font-size:11px;color:var(--s500);margin-top:3px">${safe(ex.desc)}</div>`:''}</div>${(ex.de||ex.ate)?`<div style="font-size:11px;color:var(--s400);white-space:nowrap;text-align:right">${safe(ex.de||'')}${ex.ate?' — '+safe(ex.ate):''}</div>`:''}</div></div>`).join('')}</div>`:''}
@@ -869,6 +869,7 @@ function openCandDetModal(id){
    <button class="bo" onclick="moverCandidato(${c.id});document.getElementById('rbe-modal').remove()">🔀 Mover</button>
    <button class="bo" onclick="abrirMsgWA(${c.id});document.getElementById('rbe-modal').remove()">💬 Mensagem WA</button>
    <button class="bpdf bsm" onclick="gFicha(${c.id})">⬇ Ficha PDF</button>
+   <button class="${c.docsVisivelEmpresa?'bgreen':'bo'} bsm" onclick="toggleDocsEmpresa(${c.id})" title="Liberar documentos para o contratante">${c.docsVisivelEmpresa?'📁 Docs: ON':'📁 Docs: OFF'}</button>
    <button class="bo" onclick="document.getElementById('rbe-modal').remove()">Fechar</button>`);
 }
 function cdt(tab,btn,id){
@@ -1795,6 +1796,7 @@ function rEmpPortal(){
           <button class="emp-ptab on" onclick="empTab('cur',this,'${tid}')">📄 Currículo</button>
           <button class="emp-ptab" onclick="empTab('par',this,'${tid}')">📋 Parecer</button>
           <button class="emp-ptab" onclick="empTab('disc',this,'${tid}')">🧠 DISC</button>
+          ${c.docsVisivelEmpresa?`<button class="emp-ptab" onclick="empTab('docs',this,'${tid}')">📁 Documentos</button>`:''}
         </div>
         <div id="${tid}-cur">
           <div style="font-size:11px;font-weight:700;color:var(--s400);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px">Arquivos e relatórios</div>
@@ -1806,10 +1808,13 @@ function rEmpPortal(){
         </div>
         <div id="${tid}-par" class="hidden">
           ${c.parecer?`<div style="font-size:13px;color:var(--s600);line-height:1.7">${c.parecer}</div>`:'<div class="alert ab">Parecer técnico ainda não disponível.</div>'}
+          ${c.motivoSaida?`<div style="margin-top:10px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px 13px"><div style="font-size:10px;font-weight:700;color:var(--amber);text-transform:uppercase;margin-bottom:3px">Motivo da saída</div><div style="font-size:13px;color:var(--s700)">${safe(c.motivoSaida)}</div></div>`:''}
+          ${c.porqueContratar?`<div style="margin-top:8px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 13px"><div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;margin-bottom:3px">Por que devemos contratar?</div><div style="font-size:13px;color:var(--s700)">${safe(c.porqueContratar)}</div></div>`:''}
         </div>
         <div id="${tid}-disc" class="hidden">
           ${c.disc?`${['D','I','S','C'].map(k=>`<div class="db-row"><div class="db-lbl">${k} — ${DN[k]}</div><div class="db-trk"><div class="db-fill dc-${k}" style="width:${Math.round(c.disc[k]/Math.max(...Object.values(c.disc))*100)}%"><span class="db-val">${c.disc[k]}%</span></div></div></div>`).join('')}${dom?`<div style="margin-top:8px;background:${DC[dom[0]]}15;border:1px solid ${DC[dom[0]]}30;border-radius:8px;padding:8px 11px"><div style="font-size:12px;font-weight:700;color:${DC[dom[0]]}">${dom[0]} — ${DN[dom[0]]}: ${dom[1]}%</div><div style="font-size:11px;color:var(--s500);margin-top:3px">${['D','I','S','C'].map(k=>k+':'+c.disc[k]+'%').join(' · ')}</div></div>`:''}<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><button class="bp bsm" onclick="gDISC(${c.id})">📊 Relatório completo</button><button class="bo bsm" onclick="gDiscSimplificado(${c.id})">📋 Relatório simplificado</button></div>`:'<div class="alert ab">Perfil DISC ainda não aplicado para este candidato.</div>'}
         </div>
+        <div id="${tid}-docs" class="hidden">${renderAbaDocumentos(c.id,true)}</div>
         ${(c.comentarios||[]).map(cm=>`<div style="background:var(--light);border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:12px"><span>${safe(cm.t)}</span><span style="color:var(--s400);margin-left:6px">${safe(cm.a)} · ${safe(cm.d)} · <strong style="color:${cm.ap==='aprovado'?'var(--green)':'var(--red)'}">${cm.ap==='aprovado'?'✔ Aprovado':'✖ Reprovado'}</strong></span></div>`).join('')}
         <textarea id="eo-${c.id}" placeholder="Seu comentário sobre este candidato..." style="min-height:40px;margin-top:8px;margin-bottom:6px"></textarea>
         <div style="display:flex;gap:6px"><button class="bgreen bsm" onclick="eAp(${c.id},'aprovado')">✔ Aprovar</button><button class="bdanger bsm" onclick="eAp(${c.id},'reprovado')">✖ Reprovar</button></div>
@@ -1822,7 +1827,7 @@ function rEmpPortal(){
 }
 
 function empTab(tab,btn,tid){
-  ['cur','par','disc'].forEach(t=>{const el=document.getElementById(`${tid}-${t}`);if(el)el.classList.toggle('hidden',t!==tab);});
+  ['cur','par','disc','docs'].forEach(t=>{const el=document.getElementById(`${tid}-${t}`);if(el)el.classList.toggle('hidden',t!==tab);});
   if(btn){const tabs=btn.closest('div').querySelectorAll('.emp-ptab');tabs.forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
 }
 function eAp(id,tipo){
@@ -2041,6 +2046,8 @@ function gPIA(){
     <div class="fgi"><label class="fgl">Pontos fortes</label><textarea id="par-pf" placeholder="Descreva os pontos fortes observados" style="height:70px"></textarea></div>
     <div class="fgi"><label class="fgl">Pontos de atenção</label><textarea id="par-pa" placeholder="Aspectos que merecem observação" style="height:70px"></textarea></div>
     <div class="fgi"><label class="fgl">Observações gerais</label><textarea id="par-og" placeholder="Impressões gerais sobre o candidato" style="height:70px"></textarea></div>
+    <div class="fgi"><label class="fgl">Motivo da saída do emprego atual/anterior</label><textarea id="par-ms" placeholder="Por que saiu ou pretende sair?" style="height:60px"></textarea></div>
+    <div class="fgi"><label class="fgl">Por que devemos contratar este candidato?</label><textarea id="par-pc" placeholder="Principais razões para a contratação" style="height:70px"></textarea></div>
   </div>`,
   `<button class="bo" onclick="document.getElementById('rbe-modal').remove()">Cancelar</button><button class="bp" onclick="gerarParecerFinal()">Gerar e salvar parecer</button>`);
 }
@@ -2050,6 +2057,8 @@ function gerarParecerFinal(){
   const pf=document.getElementById('par-pf')?.value?.trim()||'—';
   const pa=document.getElementById('par-pa')?.value?.trim()||'—';
   const og=document.getElementById('par-og')?.value?.trim()||'—';
+  const ms=document.getElementById('par-ms')?.value?.trim()||'';
+  const pc=document.getElementById('par-pc')?.value?.trim()||'';
   const hoje=new Date().toLocaleDateString('pt-BR');
   const dom=c.disc?Object.entries(c.disc).sort((a,b)=>b[1]-a[1])[0]:null;
   const html=`<div style="background:#0B4F8A;color:#fff;padding:16px 20px;border-radius:10px;margin-bottom:16px;text-align:center"><div style="font-size:10px;opacity:.7;letter-spacing:.12em;margin-bottom:4px">RBE SELECT | PARECER TÉCNICO</div><h1 style="font-size:18px;margin:0">${safe(c.nome)}</h1><p style="margin:4px 0 0;opacity:.8;font-size:13px">Vaga: ${safe(c.vaga)} · ${hoje}</p></div>
@@ -2060,8 +2069,10 @@ function gerarParecerFinal(){
     <h2 style="font-size:13px;color:#0B4F8A;border-bottom:2px solid #F5FAFF;padding-bottom:4px;margin:10px 0 8px">Pontos fortes</h2><p>${safe(pf)}</p>
     <h2 style="font-size:13px;color:#0B4F8A;border-bottom:2px solid #F5FAFF;padding-bottom:4px;margin:10px 0 8px">Pontos de atenção</h2><p>${safe(pa)}</p>
     <h2 style="font-size:13px;color:#0B4F8A;border-bottom:2px solid #F5FAFF;padding-bottom:4px;margin:10px 0 8px">Observações gerais</h2><p>${safe(og)}</p>
+    ${ms?`<h2 style="font-size:13px;color:#0B4F8A;border-bottom:2px solid #F5FAFF;padding-bottom:4px;margin:10px 0 8px">Motivo da saída</h2><p>${safe(ms)}</p>`:''}
+    ${pc?`<h2 style="font-size:13px;color:#0B4F8A;border-bottom:2px solid #F5FAFF;padding-bottom:4px;margin:10px 0 8px">Por que devemos contratar?</h2><p>${safe(pc)}</p>`:''}
     <p style="margin-top:18px;font-size:10px;color:#999;border-top:1px solid #e0e8f5;padding-top:10px;text-align:center">RBE Select — rbeselect@gmail.com · ${hoje}</p>`;
-  const idx=CANDS.findIndex(x=>x.id===c.id);if(idx!==-1)CANDS[idx].parecer=html;
+  const idx=CANDS.findIndex(x=>x.id===c.id);if(idx!==-1){CANDS[idx].parecer=html;if(ms)CANDS[idx].motivoSaida=ms;if(pc)CANDS[idx].porqueContratar=pc;}
   saveState();document.getElementById('rbe-modal').remove();rbePrintSafe('Parecer — '+safe(c.nome),html);
 }
 
@@ -2172,6 +2183,7 @@ function renderInscStep(){
     <div class="fg1">
       <div class="fgi"><label class="fgl">Nome completo *</label><input id="i-nome" placeholder="Seu nome completo"></div>
       <div class="fgi"><label class="fgl">CPF *</label><input id="i-cpf" placeholder="000.000.000-00"></div>
+      <div class="fgi"><label class="fgl">Data de nascimento *</label><input id="i-nasc" type="date" max="" placeholder="DD/MM/AAAA"></div>
       <div class="fgi"><label class="fgl">E-mail</label><input id="i-email" placeholder="email@email.com"></div>
       <div class="fgi"><label class="fgl">WhatsApp</label><input id="i-wa" placeholder="22999999999"></div>
       <div class="fgi"><label class="fgl">Cidade</label><input id="i-cidade" placeholder="Sua cidade"></div>
@@ -2204,15 +2216,15 @@ function renderInscStep(){
 function addExpInsc(){const li=document.getElementById('exps-insc-list');if(!li)return;const n=(li.querySelectorAll('.exp-insc-item').length)+1;li.insertAdjacentHTML('beforeend',`<div class="exp-insc-item" style="background:var(--s50);border:1px solid var(--s200);border-radius:10px;padding:12px;margin-bottom:10px"><div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:8px">Experiência ${n}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px"><div><label class="fgl">Início</label><input placeholder="MM/AAAA"></div><div><label class="fgl">Saída</label><input placeholder="MM/AAAA ou Atual"></div></div><div><label class="fgl">Resumo</label><textarea placeholder="Cargo, empresa, atividades..." style="min-height:72px;width:100%;box-sizing:border-box"></textarea></div><div style="text-align:right;margin-top:5px"><button type="button" class="bdanger bsm" onclick="this.closest('.exp-insc-item').remove()">✕ Remover</button></div></div>`);}
 function addCursoInsc(){const li=document.getElementById('cursos-insc-list');if(!li)return;li.insertAdjacentHTML('beforeend',`<div class="curso-insc-item" style="background:var(--s50);border-radius:8px;padding:8px;margin-bottom:6px;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;align-items:center"><input placeholder="Nome do curso"><input placeholder="Instituição"><input placeholder="Ano/período"><button type="button" class="bdanger bsm" onclick="this.closest('.curso-insc-item').remove()">✕</button></div>`);}
 function avancarInsc(){
-  const nome=document.getElementById('i-nome')?.value?.trim();const cpf=document.getElementById('i-cpf')?.value?.trim();
-  if(!nome)return alert('Preencha seu nome.');if(!cpf)return alert('Preencha seu CPF.');
+  const nome=document.getElementById('i-nome')?.value?.trim();const cpf=document.getElementById('i-cpf')?.value?.trim();const nasc=document.getElementById('i-nasc')?.value?.trim();
+  if(!nome)return alert('Preencha seu nome.');if(!cpf)return alert('Preencha seu CPF.');if(!nasc)return alert('Preencha sua data de nascimento.');
   if(!document.getElementById('i-lgpd')?.checked)return alert('Confirme a autorização de dados LGPD.');
   const expEls=document.querySelectorAll('#exps-insc-list .exp-insc-item');
   const expsList=[];expEls.forEach(el=>{const inps=el.querySelectorAll('input');const ta=el.querySelector('textarea');const de=(inps[0]?.value||'').trim();const ate=(inps[1]?.value||'').trim();const desc=(ta?.value||'').trim();if(de||ate||desc)expsList.push({cargo:'',empresa:'',de,ate,desc});});
   const cursoEls=document.querySelectorAll('#cursos-insc-list .curso-insc-item');
   const cursosList=[];cursoEls.forEach(el=>{const inps=el.querySelectorAll('input');if(inps[0]?.value?.trim())cursosList.push({nome:inps[0].value.trim(),instituicao:(inps[1]?.value||'').trim(),ano:(inps[2]?.value||'').trim(),cargaHoraria:''});});
   const curFiles=Array.from(document.getElementById('i-curriculo')?.files||[]);
-  inscData={nome,cpf,email:document.getElementById('i-email')?.value?.trim()||'',wa:document.getElementById('i-wa')?.value?.trim()||'',cidade:document.getElementById('i-cidade')?.value?.trim()||'',area:document.getElementById('i-area')?.value||'',cargo:document.getElementById('i-cargo')?.value?.trim()||'',escolaridade:document.getElementById('i-escolaridade')?.value||'',formacao:document.getElementById('i-formacao')?.value?.trim()||'',experiencias:expsList,cursos:cursosList,curriculo:fileNamesText(curFiles),arquivos:fileNames(curFiles)};
+  inscData={nome,cpf,nasc:nasc||'',email:document.getElementById('i-email')?.value?.trim()||'',wa:document.getElementById('i-wa')?.value?.trim()||'',cidade:document.getElementById('i-cidade')?.value?.trim()||'',area:document.getElementById('i-area')?.value||'',cargo:document.getElementById('i-cargo')?.value?.trim()||'',escolaridade:document.getElementById('i-escolaridade')?.value||'',formacao:document.getElementById('i-formacao')?.value?.trim()||'',experiencias:expsList,cursos:cursosList,curriculo:fileNamesText(curFiles),arquivos:fileNames(curFiles)};
   const cExist=CANDS.find(c=>c.cpf&&c.cpf.replace(/\D/g,'')===cpf.replace(/\D/g,''));
   if(cExist){alert('Você já está cadastrado! Acesse "Já me inscrevi" para consultar sua candidatura.');return;}
   inscIdx=1;renderDiscInsc();
@@ -2244,7 +2256,7 @@ async function finalizarInsc(){
     try{ docsEnviados = await window.rbeUploadCandidateFiles(candId, inputFiles); }
     catch(e){ console.warn('Upload ao Firebase Storage falhou:', e); alert('Sua candidatura será salva, mas os arquivos não foram enviados. Verifique o Firebase Storage.'); }
   }
-  const cand={id:candId,nome:inscData.nome,cpf:inscData.cpf,email:inscData.email,wa:inscData.wa,cidade:inscData.cidade,vaga:v.titulo,eid:0,pipe:'Inscrito',st:'Novo candidato',area:inscData.area,cargo:inscData.cargo||'',escolaridade:inscData.escolaridade||'',formacao:inscData.formacao||'',experiencias:inscData.experiencias||[],disc:discResult,parecer:'',obs:'',origem:'Sistema',comentarios:[],entrada:'',saida:'',curriculo:inscData.curriculo||'',arquivos:inscData.arquivos||[],cursos:inscData.cursos||[],lgpdConsentimento:true,lgpdData:new Date().toLocaleDateString('pt-BR'),historico:[{data:now(),de:'—',para:'Inscrito',obs:'Candidatura online',resp:'Sistema'}]};
+  const cand={id:candId,nome:inscData.nome,cpf:inscData.cpf,dataNasc:inscData.nasc||'',email:inscData.email,wa:inscData.wa,cidade:inscData.cidade,vaga:v.titulo,eid:0,pipe:'Inscrito',st:'Novo candidato',area:inscData.area,cargo:inscData.cargo||'',escolaridade:inscData.escolaridade||'',formacao:inscData.formacao||'',experiencias:inscData.experiencias||[],disc:discResult,parecer:'',obs:'',origem:'Sistema',comentarios:[],entrada:'',saida:'',curriculo:inscData.curriculo||'',arquivos:inscData.arquivos||[],cursos:inscData.cursos||[],lgpdConsentimento:true,lgpdData:new Date().toLocaleDateString('pt-BR'),historico:[{data:now(),de:'—',para:'Inscrito',obs:'Candidatura online',resp:'Sistema'}]};
   CANDS.push(cand); docsEnviados.forEach(d=>addCandDoc(cand.id,d)); saveState();
   if(window.rbeSyncDoc){try{await window.rbeSyncDoc('candidatos', cand.id, cand); await window.rbeSyncDoc('documentosCandidatos', cand.id, {candId:cand.id,docs:getCandDocs(cand.id)});}catch(e){console.warn(e);}}
   document.getElementById('insc-area').innerHTML=`<div class="card" style="border-radius:18px;text-align:center;padding:32px">
@@ -2671,6 +2683,15 @@ function renderAbaDocumentos(candId,somenteLeitura){
   </div>`;
 }
 
+// ===== TOGGLE DOCS EMPRESA =====
+function toggleDocsEmpresa(id){
+  const idx=CANDS.findIndex(x=>x.id===id);if(idx===-1)return;
+  CANDS[idx].docsVisivelEmpresa=!CANDS[idx].docsVisivelEmpresa;
+  saveState();
+  rbeToast(CANDS[idx].docsVisivelEmpresa?'📁 Docs liberados para o contratante!':'📁 Docs ocultados do contratante.', CANDS[idx].docsVisivelEmpresa?'ok':'warn');
+  openCandDetModal(id);
+}
+
 // ===== INIT =====
 loadState();
 if(typeof loadRbeDocs==='function')loadRbeDocs();
@@ -2678,4 +2699,3 @@ ss('home');
 </script>
 </body>
 </html>
-
