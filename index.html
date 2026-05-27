@@ -356,16 +356,7 @@ button{cursor:pointer;font-family:inherit;border:none;border-radius:10px;font-we
 
   window.rbeFirebaseReady = true;
   console.log("Firebase conectado com sucesso.");
-  // Atualizar badge de status
-  const _updateBadge = () => {
-    const badge = document.getElementById('fb-badge');
-    if (badge) { badge.textContent = '☁️ Firebase ON'; badge.className = 'badge bgreen2'; }
-  };
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', _updateBadge);
-  } else {
-    setTimeout(_updateBadge, 300);
-  }
+  setTimeout(()=>{const b=document.getElementById('fb-badge');if(b){b.textContent='☁️ Firebase ON';b.className='badge bgreen2';}},500);
 </script>
 
 <script>
@@ -2687,3 +2678,4 @@ ss('home');
 </script>
 </body>
 </html>
+
