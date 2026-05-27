@@ -356,16 +356,16 @@ button{cursor:pointer;font-family:inherit;border:none;border-radius:10px;font-we
 
   window.rbeFirebaseReady = true;
   console.log("Firebase conectado com sucesso.");
-
   // Atualizar badge de status
-  document.addEventListener('DOMContentLoaded', () => {
+  const _updateBadge = () => {
     const badge = document.getElementById('fb-badge');
     if (badge) { badge.textContent = '☁️ Firebase ON'; badge.className = 'badge bgreen2'; }
-  });
-  setTimeout(() => {
-    const badge = document.getElementById('fb-badge');
-    if (badge) { badge.textContent = '☁️ Firebase ON'; badge.className = 'badge bgreen2'; }
-  }, 500);
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _updateBadge);
+  } else {
+    setTimeout(_updateBadge, 300);
+  }
 </script>
 
 <script>
@@ -588,7 +588,7 @@ function doLogin(){
   const u=document.getElementById('lu').value.trim(),p=document.getElementById('lp').value;
   let f=USERS.find(x=>x.u===u&&x.p===p);
   if(!f) f=(window.RBE_USUARIOS_INTERNOS||[]).find(x=>(x.login||x.u)===u&&x.senha===p);
-  if(f){document.getElementById('sb-user').textContent=f.nome;document.getElementById('lerr').classList.add('hidden');ss('app');buildSidebar();goTab('dash',document.getElementById('ni-dash'));initSessionTimer();rbeCarregarDoFirestore();}
+  if(f){document.getElementById('sb-user').textContent=f.nome;document.getElementById('lerr').classList.add('hidden');ss('app');buildSidebar();goTab('dash',document.getElementById('ni-dash'));initSessionTimer();}
   else document.getElementById('lerr').classList.remove('hidden');
 }
 
@@ -2680,34 +2680,9 @@ function renderAbaDocumentos(candId,somenteLeitura){
   </div>`;
 }
 
-// ===== CARREGAR DO FIRESTORE =====
-async function rbeCarregarDoFirestore(){
-  if(!window.db){return;}
-  try{
-    const{collection,getDocs,onSnapshot}=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-    const[ps,cs,vs]=await Promise.all([
-      getDocs(collection(window.db,'processos')),
-      getDocs(collection(window.db,'candidatos')),
-      getDocs(collection(window.db,'vagas'))
-    ]);
-    if(!ps.empty){PROCS.splice(0,PROCS.length,...ps.docs.map(d=>({...d.data(),id:d.id})));}
-    if(!cs.empty){CANDS.splice(0,CANDS.length,...cs.docs.map(d=>({...d.data(),id:d.id})));}
-    if(!vs.empty){VPUB.splice(0,VPUB.length,...vs.docs.map(d=>({...d.data(),id:d.id})));}
-    rbeToast('☁️ Dados carregados do Firebase!','ok');
-    rDash();
-    // Listeners tempo real
-    onSnapshot(collection(window.db,'candidatos'),snap=>{if(!snap.metadata.hasPendingWrites){CANDS.splice(0,CANDS.length,...snap.docs.map(d=>({...d.data(),id:d.id})));} });
-    onSnapshot(collection(window.db,'processos'),snap=>{if(!snap.metadata.hasPendingWrites){PROCS.splice(0,PROCS.length,...snap.docs.map(d=>({...d.data(),id:d.id})));} });
-    onSnapshot(collection(window.db,'vagas'),snap=>{if(!snap.metadata.hasPendingWrites){VPUB.splice(0,VPUB.length,...snap.docs.map(d=>({...d.data(),id:d.id})));} });
-  }catch(e){
-    console.warn('Erro ao carregar Firestore:',e.message);
-    rbeToast('Offline — usando dados locais','warn');
-  }
-}
-
 // ===== INIT =====
 loadState();
-if(typeof loadRbeDocs === 'function') loadRbeDocs();
+if(typeof loadRbeDocs==='function')loadRbeDocs();
 ss('home');
 </script>
 </body>
